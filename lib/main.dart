@@ -10,6 +10,7 @@ import 'package:public_tender_portal/screens/homepage.dart';
 import 'package:public_tender_portal/screens/profile_page.dart';
 import 'package:public_tender_portal/screens/sign_in.dart';
 import 'package:public_tender_portal/screens/sign_up.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,10 +21,10 @@ void main() async {
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: 'AIzaSyCJpTXC9fl7BBwxxhCU7acy9o_w5v37z1U',
-        appId: '1:765223655394:android:316be23b8c2e39f68f0bbb',
-        messagingSenderId: '765223655394',
-        projectId: 'shopping-app-ce5f7',
+        apiKey: FirebaseConfig.apiKey,
+        appId: FirebaseConfig.appId,
+        messagingSenderId: FirebaseConfig.messagingSenderId,
+        projectId: FirebaseConfig.projectId,
       ),
     );
   } catch (e) {
