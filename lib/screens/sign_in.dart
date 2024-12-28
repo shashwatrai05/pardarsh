@@ -34,6 +34,11 @@ class _SigninScreenState extends State<SigninScreen> {
           uid: userCredential.user!.uid,
           email: _emailController.text.trim(),
           role: 'General User',
+          legalName: '',
+          dob: '',
+          phoneNumber: '',
+          aadharNumber: '',
+          address: '',
         );
         await _firestore
             .collection('users')
@@ -101,9 +106,8 @@ class _SigninScreenState extends State<SigninScreen> {
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
-                 style: const TextStyle(color: Colors.black),
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
-                  
                   labelText: 'Email',
                   labelStyle: const TextStyle(color: Colors.black),
                   filled: true,

@@ -16,8 +16,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _selectedRole;
+  final TextEditingController _legalNameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
+  final TextEditingController _aadharNumberController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
 
+  String? _selectedRole;
   final List<String> roles = ['Contractor', 'General User', 'Government Official'];
 
   Future<void> _signupUser() async {
@@ -33,12 +38,19 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _passwordController.text.trim(),
       );
 
+      // Create a UserModel object with the additional fields
       UserModel newUser = UserModel(
         uid: userCredential.user!.uid,
         email: _emailController.text.trim(),
         role: _selectedRole!,
+        legalName: _legalNameController.text.trim(),
+        dob: _dobController.text.trim(),
+        phoneNumber: _phoneNumberController.text.trim(),
+        aadharNumber: _aadharNumberController.text.trim(),
+        address: _addressController.text.trim(),
       );
 
+      // Save the user information to Firestore
       await _firestore
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -54,85 +66,74 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Widget _buildRoleSelection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Select Role',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.black, // Bold black text for clear visibility
-        ),
-      ),
-      const SizedBox(height: 8),
-      DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white, // White background for the dropdown field
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.grey), // Light grey border
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.grey), // Subtle border for unselected state
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.blue, width: 1.5), // Highlighted border
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Role',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black, // Bold black text for clear visibility
           ),
         ),
-        value: _selectedRole,
-        hint: Text(
-          'Choose your role',
-          style: TextStyle(color: Colors.grey.shade600), // Subtle grey for placeholder
-        ),
-        onChanged: (String? newValue) {
-          setState(() {
-            _selectedRole = newValue;
-          });
-        },
-        items: roles.map<DropdownMenuItem<String>>((String role) {
-          return DropdownMenuItem<String>(
-            value: role,
-            child: Text(
-              role,
-              style: const TextStyle(
-                color: Colors.black, // Black text for dropdown items
-              ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white, // White background for the dropdown field
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.grey), // Light grey border
             ),
-          );
-        }).toList(),
-        dropdownColor: Colors.white, // Dropdown menu background
-      ),
-    ],
-  );
-}
-
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.grey), // Subtle border for unselected state
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.blue, width: 1.5), // Highlighted border
+            ),
+          ),
+          value: _selectedRole,
+          hint: Text(
+            'Choose your role',
+            style: TextStyle(color: Colors.grey.shade600), // Subtle grey for placeholder
+          ),
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedRole = newValue;
+            });
+          },
+          items: roles.map<DropdownMenuItem<String>>((String role) {
+            return DropdownMenuItem<String>(
+              value: role,
+              child: Text(
+                role,
+                style: const TextStyle(
+                  color: Colors.black, // Black text for dropdown items
+                ),
+              ),
+            );
+          }).toList(),
+          dropdownColor: Colors.white, // Dropdown menu background
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // appBar: AppBar(
-      //   title: const Text(
-      //     'Sign Up',
-      //     style: TextStyle(color: Colors.black),
-      //   ),
-      //   backgroundColor: Colors.white,
-      //   elevation: 1,
-      //   iconTheme: const IconThemeData(color: Colors.black),
-      // ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 80,),
+              SizedBox(height: 80),
               const Text(
-                
                 'Create Your Account',
                 style: TextStyle(
                   fontSize: 24,
@@ -179,7 +180,93 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Add the role selection dropdown
               _buildRoleSelection(),
+              const SizedBox(height: 16),
+              // Legal Name field
+              TextField(
+                controller: _legalNameController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Legal Name',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.person, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // DOB field
+              TextField(
+                controller: _dobController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Date of Birth',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.calendar_today, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Phone Number field
+              TextField(
+                controller: _phoneNumberController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.phone, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Aadhar Number field
+              TextField(
+                controller: _aadharNumberController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Aadhar Number',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.credit_card, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Address field
+              TextField(
+                controller: _addressController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Address (Region)',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.location_on, color: Colors.blue),
+                ),
+              ),
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: _signupUser,
@@ -202,7 +289,7 @@ class _SignupScreenState extends State<SignupScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Already have an account?', style: TextStyle(color: Colors.black87),),
+                  const Text('Already have an account?', style: TextStyle(color: Colors.black87)),
                   TextButton(
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/signin');

@@ -67,42 +67,71 @@ class _GovernmentPortalState extends State<GovernmentPortal> {
     }
   }
 
-  // Method to add a new project
-  Future<void> _addProject() async {
-    if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a valid deadline')));
-      return;
-    }
-
-    try {
-      await _firestore.collection('projects').add({
-        'name': _projectNameController.text.trim(),
-        'region': _selectedRegion,
-        'description': _descriptionController.text.trim(),
-        'tenderDetails': _tenderDetailsController.text.trim(),
-        'deadline': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        'contractorId': _contractorIdController.text.trim(),
-        'status': 'Open',
-        'createdBy': _auth.currentUser!.uid,
-        'createdAt': Timestamp.now(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project added successfully!')));
-
-      // Clear fields after submission
-      _projectNameController.clear();
-      _descriptionController.clear();
-      _tenderDetailsController.clear();
-      _contractorIdController.clear();
-      _selectedRegion = null;
-      _selectedDate = null;
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-    }
+  // Method to add a new project and assign a contractor
+// Method to add a new project and assign a contractor
+Future<void> _addProject() async {
+  if (_selectedDate == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid deadline')));
+    return;
   }
+
+  // If contractor ID is provided, proceed with assigning contractor
+  String contractorId = _contractorIdController.text.trim();
+
+  try {
+    // Add the project to the Firestore projects collection
+    DocumentReference projectRef = await _firestore.collection('projects').add({
+      'name': _projectNameController.text.trim(),
+      'region': _selectedRegion,
+      'description': _descriptionController.text.trim(),
+      'tenderDetails': _tenderDetailsController.text.trim(),
+      'deadline': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+      'contractorId': contractorId.isNotEmpty ? contractorId : null,  // Assign contractor if provided
+      'status': 'Open',
+      'createdBy': _auth.currentUser!.uid,
+      'createdAt': Timestamp.now(),
+    });
+
+    // If contractor ID is provided, update the contractor's document
+    if (contractorId.isNotEmpty) {
+      DocumentReference contractorRef =
+          _firestore.collection('contractors').doc(contractorId);
+
+      // Check if contractor document exists
+      DocumentSnapshot contractorDoc = await contractorRef.get();
+
+      if (!contractorDoc.exists) {
+        // If contractor document does not exist, create it
+        await contractorRef.set({
+          'name': contractorId,  // Or any other relevant data
+          'assignedProjects': [projectRef.id],
+        });
+      } else {
+        // If contractor document exists, update the assigned projects field
+        await contractorRef.update({
+          'assignedProjects': FieldValue.arrayUnion([projectRef.id]),
+        });
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Project added successfully!')));
+
+    // Clear fields after submission
+    _projectNameController.clear();
+    _descriptionController.clear();
+    _tenderDetailsController.clear();
+    _contractorIdController.clear();
+    _selectedRegion = null;
+    _selectedDate = null;
+
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')));
+  }
+}
+
 
   Future<void> _selectDeadline(BuildContext context) async {
     DateTime initialDate = DateTime.now();
@@ -220,82 +249,83 @@ class _GovernmentPortalState extends State<GovernmentPortal> {
     int maxLines = 1,
   }) {
     return TextField(
-                controller: controller,
-                 style: const TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  
-                  labelText:label,
-                  hintText: hintText,
-                  labelStyle: const TextStyle(color: Colors.black),
-                  hintStyle:const TextStyle(color: Colors.black), 
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.email, color: Colors.grey),
-                ),
-                maxLines: maxLines,
-              );
+      controller: controller,
+      style: const TextStyle(color: Colors.black),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        labelStyle: const TextStyle(color: Colors.black),
+        hintStyle: const TextStyle(color: Colors.black),
+        filled: true,
+        fillColor: Colors.grey[200],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: const Icon(Icons.email, color: Colors.grey),
+      ),
+      maxLines: maxLines,
+    );
   }
 
   // Region Dropdown
   Widget _buildRegionDropdown() {
-  return DropdownButtonFormField<String>(
-    value: _selectedRegion,
-    hint: const Text('Select Region', style: TextStyle(color: Colors.black45),),
-    decoration: InputDecoration(
-      labelText: 'Select Region',
-      labelStyle: const TextStyle(color: Colors.black), // Set label color to black
-      filled: true,
-      fillColor: Colors.grey[200],// Set the background of the input field to white
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.black), // Set border color
+    return DropdownButtonFormField<String>(
+      value: _selectedRegion,
+      hint: const Text(
+        'Select Region',
+        style: TextStyle(color: Colors.black45),
       ),
-    ),
-    dropdownColor: Colors.white, // Set the dropdown menu background color to white
-    onChanged: (String? newValue) {
-      setState(() {
-        _selectedRegion = newValue;
-      });
-    },
-    items: regions.map<DropdownMenuItem<String>>((String region) {
-      return DropdownMenuItem<String>(
-        value: region,
-        child: Text(region, style: const TextStyle(color: Colors.black)), // Set dropdown item text color
-      );
-    }).toList(),
-  );
-}
-
+      decoration: InputDecoration(
+        labelText: 'Select Region',
+        labelStyle: const TextStyle(color: Colors.black),
+        filled: true,
+        fillColor: Colors.grey[200],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black),
+        ),
+      ),
+      dropdownColor: Colors.white,
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedRegion = newValue;
+        });
+      },
+      items: regions.map<DropdownMenuItem<String>>((String region) {
+        return DropdownMenuItem<String>(
+          value: region,
+          child: Text(region, style: const TextStyle(color: Colors.black)),
+        );
+      }).toList(),
+    );
+  }
 
   // Deadline Date Picker
   Widget _buildDeadlineField() {
-  return GestureDetector(
-    onTap: () => _selectDeadline(context), // Show date picker on tap
-    child: AbsorbPointer(
-      child: TextField(
-        controller: TextEditingController(
-          text: _selectedDate != null
-              ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
-              : '',
-        ),
-        style: const TextStyle(color: Colors.black), // Set text color to black
-        decoration: InputDecoration(
-          labelText: 'Select Deadline',
-          labelStyle: const TextStyle(color: Colors.black), // Set label color to black
-          filled: true,
-          fillColor: Colors.grey[200], // Set the input field background to white
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.black), // Set border color to black
+    return GestureDetector(
+      onTap: () => _selectDeadline(context),
+      child: AbsorbPointer(
+        child: TextField(
+          controller: TextEditingController(
+            text: _selectedDate != null
+                ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
+                : '',
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            labelText: 'Select Deadline',
+            labelStyle: const TextStyle(color: Colors.black),
+            filled: true,
+            fillColor: Colors.grey[200],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.black),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

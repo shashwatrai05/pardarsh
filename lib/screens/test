@@ -2,9 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';  // Add this dependency for rating functionality
-import 'package:public_tender_portal/screens/profile_page.dart';
-import 'detail_screen.dart';  // Import the ProjectDetailsScreen // Import the Profile screen
+import 'detail_screen.dart';  // Import the ProjectDetailsScreen
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -188,7 +186,7 @@ class _HomepageState extends State<Homepage> {
           ),
           SizedBox(height: 20),
           Text(
-            'How It Works: ',
+            'How It Works:',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -289,112 +287,87 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
- Widget _buildProjectsSection() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-    child: _isLoadingProjects
-        ? Center(child: CircularProgressIndicator())
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Available Projects',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.deepOrange),
-              ),
-              SizedBox(height: 10),
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: _projects.length,
-                itemBuilder: (context, index) {
-                  var project = _projects[index].data() as Map<String, dynamic>;
-                  // Safely access the fields with fallback values
-                  String title = project['name'] ?? 'No Title';
-                  String region = project['region'] ?? 'Unknown Region';
-                  double rating = project['rating'] ?? 0.0;
+  Widget _buildProjectsSection() {
+    return _selectedRegion == null
+        ? Center(
+            child: const Text('Please select a region to view projects.',
+                style: TextStyle(color: Colors.grey, fontSize: 16)),
+          )
+        : _isLoadingProjects
+            ? const CircularProgressIndicator()
+            : _projects.isEmpty
+                ? const Text('No projects found for this region.',
+                    style: TextStyle(color: Colors.grey, fontSize: 16))
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _projects.length,
+                    itemBuilder: (context, index) {
+                      DocumentSnapshot project = _projects[index];
+                      return _buildProjectCard(project);
+                    },
+                  );
+  }
 
-                  return Card(
-  color: Colors.white, // Light color for a clean look on a white background
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  elevation: 6,
-  margin: EdgeInsets.symmetric(vertical: 10),
-  child: ListTile(
-    contentPadding: EdgeInsets.all(16), // Added padding for a better look
-    title: Text(
-      title,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.deepOrange, // Highlighted text for contrast
+  Widget _buildProjectCard(DocumentSnapshot project) {
+  return Card(
+    color: Colors.white,
+    elevation: 5,
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    child: ListTile(
+      contentPadding: const EdgeInsets.all(16),
+      title: Text(
+        project['name'] ?? 'Unnamed Project',  // Fallback to 'Unnamed Project' if the name doesn't exist
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
       ),
-    ),
-    subtitle: Text(
-      'Location: $region',
-      style: TextStyle(color: Colors.grey[600]), // Subtle text color
-    ),
-    trailing: RatingBar.builder(
-      unratedColor: Colors.grey[100],
-      glowColor: Colors.blueGrey,
-      initialRating: rating,
-      minRating: 1,
-      direction: Axis.horizontal,
-      allowHalfRating: true,
-      itemCount: 5,
-      itemSize: 20,
-      itemBuilder: (context, _) => Icon(Icons.star, color: Colors.amber),
-      onRatingUpdate: (rating) {
-        // Handle rating logic here (e.g., save to Firestore)
+      subtitle: Text(
+        project['region'] ?? 'Unknown Region',  // Fallback to 'Unknown Region' if the region doesn't exist
+        style: const TextStyle(color: Colors.grey),
+      ),
+      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.deepOrange),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProjectDetailsScreen(
+              projectName: project['name'] ?? 'Unnamed Project',
+              projectRegion: project['region'] ?? 'Unknown Region',
+              projectDetails: project['tenderDetails'] ?? 'No tender details available',
+              deadline: project['deadline'] ?? 'No deadline specified',
+              status: project['status'] ?? 'Status Unknown',
+              contractorEmail: project['contractorId'] ?? 'No contractor email provided',
+              description: project['description'] ?? 'No description available',
+            ),
+          ),
+        );
       },
     ),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProjectDetailsScreen(
-            projectName: project['name'] ?? 'Unnamed Project',
-            projectRegion: project['region'] ?? 'Unknown Region',
-            projectDetails: project['tenderDetails'] ?? 'No tender details available',
-            deadline: project['deadline'] ?? 'No deadline specified',
-            status: project['status'] ?? 'Status Unknown',
-            contractorEmail: project['contractorId'] ?? 'No contractor email provided',
-            description: project['description'] ?? 'No description available',
-          ),
-        ),
-      );
-    },
-  ),
-);
-
-                },
-              ),
-            ],
-          ),
   );
 }
 
-
+Future<void> _logout() async {
+    try {
+      await _auth.signOut();
+      Navigator.pushReplacementNamed(context, '/signin');
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Logout failed: ${e.toString()}')));
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Tender Portal'),
-        backgroundColor: Colors.deepOrange,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.white,),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfilePage()),
-              );
-            },
-          ),
-        ],
+        title: const Text('Government Tender Portal', style: TextStyle(fontWeight: FontWeight.bold),),
+        backgroundColor: Colors.white,
+        elevation: 2,
+        iconTheme: const IconThemeData(color: Colors.deepOrange),
+        titleTextStyle: const TextStyle(color: Colors.deepOrange, fontSize: 22),
+        actions: [IconButton(onPressed: _logout, icon: Icon(Icons.logout_outlined))],
       ),
-      body: _userRole == null
-          ? Center(child: CircularProgressIndicator())
-          : _userRole == 'General User'
-              ? _buildGeneralUserHome()
-              : Center(child: Text('No content available for this role')),
+      body: _buildGeneralUserHome(),
     );
   }
 }

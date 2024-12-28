@@ -15,16 +15,32 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
   final _auth = FirebaseAuth.instance;
   List<DocumentSnapshot> _projects = [];
   bool _isLoading = true;
+  String? _contractorEmail;
 
   @override
   void initState() {
     super.initState();
-    _fetchProjects();
+    _getContractorEmail();
   }
 
-  Future<void> _fetchProjects() async {
+  // Get the logged-in contractor's email and fetch projects assigned to them
+  Future<void> _getContractorEmail() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        _contractorEmail = user.email;  // Use the email as the contractor ID
+      });
+      await _fetchProjects(user.email!);  // Fetch projects after contractor email is available
+    }
+  }
+
+  Future<void> _fetchProjects(String contractorEmail) async {
     try {
-      QuerySnapshot querySnapshot = await _firestore.collection('projects').get();
+      // Fetch projects assigned to the logged-in contractor's email
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('projects')
+          .where('contractorId', isEqualTo: contractorEmail)
+          .get();
       setState(() {
         _projects = querySnapshot.docs;
         _isLoading = false;
@@ -61,7 +77,9 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
     setState(() {
       _isLoading = true;
     });
-    await _fetchProjects(); // Reload the projects
+    if (_contractorEmail != null) {
+      await _fetchProjects(_contractorEmail!);  // Reload the projects based on contractor email
+    }
   }
 
   @override
@@ -88,7 +106,7 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _projects.isEmpty
-                ? const Center(child: Text('No projects available.'))
+                ? const Center(child: Text('No projects assigned.'))
                 : ListView.builder(
                     itemCount: _projects.length,
                     itemBuilder: (context, index) {
